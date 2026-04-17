@@ -35,7 +35,6 @@ Discord 채팅방을 `shared-memory app`처럼 쓰는 실험용 봇.
 - `/memory`
 - `/schedule`
 - `/forget`
-- `/mode`
 - `/status`
 
 ## 실행

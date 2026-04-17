@@ -6,22 +6,6 @@ export const commands = [
     .setDescription("Lovesick 사용 가이드"),
 
   new SlashCommandBuilder()
-    .setName("mode")
-    .setDescription("봇 프리셋 관리")
-    .addSubcommand(sub =>
-      sub.setName("list").setDescription("프리셋 목록 보기")
-    )
-    .addSubcommand(sub =>
-      sub.setName("set").setDescription("프리셋 변경")
-        .addStringOption(opt =>
-          opt.setName("preset").setDescription("적용할 프리셋").setRequired(true).setAutocomplete(true)
-        )
-    )
-    .addSubcommand(sub =>
-      sub.setName("current").setDescription("현재 프리셋 확인")
-    ),
-
-  new SlashCommandBuilder()
     .setName("ask")
     .setDescription("봇에게 질문하기")
     .addStringOption(opt =>

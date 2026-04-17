@@ -178,7 +178,6 @@ docker compose logs -f
 - `/memory`
 - `/schedule`
 - `/forget`
-- `/mode`
 - `/status`
 
 ## 10. 현재 알려진 제약

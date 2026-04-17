@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction } from "discord.js";
-import { getPresets, setActivePreset, getActivePresetId, getPreset } from "../prompt";
+import { getActivePresetId, getPreset } from "../prompt";
 import { state } from "../../shared/state";
 import { getQueueStats } from "../queue";
 import { getStats as getRagStats } from "../rag";
@@ -19,7 +19,6 @@ export async function handleHelp(interaction: ChatInputCommandInteraction): Prom
           "`@봇 멘션` — 멘션하면 답변",
           "`/ask` — 기억 기반 질문",
           "`/summary` — 최근 대화 요약",
-          "`/mode` — 응답 톤 프리셋 변경",
         ].join("\n"),
       },
       {
@@ -34,51 +33,12 @@ export async function handleHelp(interaction: ChatInputCommandInteraction): Prom
         name: "⚙️ 운영",
         value: [
           "`/status` — 봇 상태 확인",
-          "`/mode` — 현재 캐릭터/톤 확인 및 변경",
         ].join("\n"),
       },
     ],
   };
 
   await interaction.reply({ embeds: [embed] });
-}
-
-// ── /mode ──
-export async function handleMode(interaction: ChatInputCommandInteraction): Promise<void> {
-  const sub = interaction.options.getSubcommand();
-
-  if (sub === "list") {
-    const presets = getPresets(true);
-    const list = presets.map(p =>
-      `${p.active ? "▸ " : "　"}**${p.name}**${p.active ? " ← current" : ""}\n　　\`/mode set preset:${p.id}\``
-    ).join("\n");
-    await interaction.reply({ content: `**프리셋**\n\n${list}`, ephemeral: true });
-    return;
-  }
-
-  if (sub === "current") {
-    const id = getActivePresetId();
-    const preset = getPreset(id);
-    await interaction.reply({
-      content: `Current preset: **${preset?.name || id}**\n\`${id}\``,
-      ephemeral: true,
-    });
-    return;
-  }
-
-  if (sub === "set") {
-    const presetId = interaction.options.getString("preset", true);
-    const presets = getPresets();
-    const found = presets.find(p => p.id === presetId || p.name.includes(presetId));
-
-    if (!found) {
-      await interaction.reply({ content: `\`${presetId}\` 프리셋을 찾을 수 없어`, ephemeral: true });
-      return;
-    }
-
-    setActivePreset(found.id);
-    await interaction.reply(`프리셋 변경됨: **${found.name}**`);
-  }
 }
 
 // ── /status ──
