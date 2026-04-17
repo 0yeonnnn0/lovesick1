@@ -8,20 +8,32 @@ import { addError } from "../../shared/state";
 // ── /ask ──
 export async function handleQuestion(interaction: ChatInputCommandInteraction): Promise<void> {
   const message = interaction.options.getString("message", true);
+  console.log(`[ASK:START] user=${interaction.user.displayName} channel=${interaction.channelId} message="${message.slice(0, 120)}"`);
   await interaction.deferReply();
 
   try {
     const roomId = interaction.channelId;
     const chatHistory = historyStore.getHistory(roomId).slice(-12);
     chatHistory.push({ role: "user" as const, content: `${interaction.user.displayName}: ${message}` });
+    console.log(`[ASK:HISTORY] channel=${roomId} historyCount=${chatHistory.length}`);
 
     const ragResults = await rag.searchRelevant(message).catch(() => []);
     const memoryContext = buildRoomMemoryContext(roomId, interaction.user.id);
     const ragContext = `${memoryContext}\n\n${rag.formatContext(ragResults)}`.trim();
+    const isMemoryQuery = looksLikeMemoryQuery(message);
+    console.log(
+      `[ASK:CONTEXT] channel=${roomId} memoryQuery=${isMemoryQuery} memoryChars=${memoryContext.length} ragChars=${ragContext.length}`
+    );
+
+    console.log(`[ASK:AI:BEGIN] provider=${interaction.client.user ? "connected" : "unknown"} user=${interaction.user.displayName}`);
     const reply = looksLikeMemoryQuery(message)
       ? await answerMemoryQuery(chatHistory, ragContext, interaction.user.id)
       : await getReply(chatHistory, ragContext, interaction.user.id);
+    console.log(`[ASK:AI:END] user=${interaction.user.displayName} replyChars=${reply?.length || 0}`);
+
+    console.log(`[ASK:REPLY] user=${interaction.user.displayName} channel=${roomId}`);
     await interaction.editReply(reply);
+    console.log(`[ASK:DONE] user=${interaction.user.displayName} channel=${roomId}`);
   } catch (err) {
     const isRateLimit = (err as Error).message?.includes("429") || (err as Error).message?.includes("quota");
     const messageText = (err as Error).message || "unknown error";
