@@ -1,14 +1,16 @@
 services:
-  discord-bot:
+  lovesick1:
     image: ghcr.io/0yeonnnn0/lovesick1:latest
     container_name: lovesick1
     restart: unless-stopped
     ports:
-      - "9482:3000"
+      - "9582:3000"
     env_file:
       - .env
     environment:
       - NODE_ENV=production
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     volumes:
       - ./data:/app/data
       - ${CODEX_AUTH_DIR:-./.codex}:/root/.codex
