@@ -1,8 +1,5 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 import type { HistoryMessage } from "./history";
-
-const execFileAsync = promisify(execFile);
 
 type ExecFileError = NodeJS.ErrnoException & {
   stderr?: string;
@@ -109,6 +106,80 @@ export const __test = {
   extractCodexErrorMessage,
 };
 
+async function runCodexCommand(codexBin: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(codexBin, args, {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const maxBuffer = 1024 * 1024 * 4;
+    const timeout = setTimeout(() => {
+      child.kill("SIGTERM");
+      if (settled) return;
+      settled = true;
+      const error = new Error("Codex 실행 시간이 초과되었습니다.") as ExecFileError;
+      error.stdout = stdout;
+      error.stderr = stderr;
+      reject(error);
+    }, 120_000);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+      if (stdout.length + stderr.length > maxBuffer && !settled) {
+        settled = true;
+        clearTimeout(timeout);
+        child.kill("SIGTERM");
+        const error = new Error("Codex 출력이 너무 큽니다.") as ExecFileError;
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+      }
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+      if (stdout.length + stderr.length > maxBuffer && !settled) {
+        settled = true;
+        clearTimeout(timeout);
+        child.kill("SIGTERM");
+        const error = new Error("Codex 출력이 너무 큽니다.") as ExecFileError;
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+      }
+    });
+
+    child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      const err = error as ExecFileError;
+      err.stdout = stdout;
+      err.stderr = stderr;
+      reject(err);
+    });
+
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+      const error = new Error(`Codex 실행에 실패했습니다. exit code=${code}`) as ExecFileError;
+      error.stdout = stdout;
+      error.stderr = stderr;
+      reject(error);
+    });
+  });
+}
+
 export async function getCodexReply(history: HistoryMessage[], systemPrompt: string, model: string): Promise<string> {
   const codexBin = process.env.CODEX_BIN || "codex";
   const prompt = buildCodexPrompt(history, systemPrompt);
@@ -125,13 +196,7 @@ export async function getCodexReply(history: HistoryMessage[], systemPrompt: str
   ];
 
   try {
-    const { stdout, stderr } = await execFileAsync(codexBin, args, {
-      cwd: process.cwd(),
-      maxBuffer: 1024 * 1024 * 4,
-      timeout: 120_000,
-      env: process.env,
-    });
-
+    const { stdout, stderr } = await runCodexCommand(codexBin, args);
     const combined = `${stdout}\n${stderr}`;
     const reply = extractCodexReplyFromJsonLines(combined) || extractCodexReplyFromTranscript(combined);
     if (!reply) {
