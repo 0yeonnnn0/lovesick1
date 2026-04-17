@@ -53,9 +53,7 @@ try {
   }
   if (fs.existsSync(ACTIVE_FILE)) {
     const data = JSON.parse(fs.readFileSync(ACTIVE_FILE, "utf-8"));
-    let id = data.activePresetId || "neko";
-    // Migrate old preset ID
-    if (id === "mimic") id = "yeonnnn";
+    const id = data.activePresetId || "neko";
     activePresetId = id;
   }
 } catch (err) {
