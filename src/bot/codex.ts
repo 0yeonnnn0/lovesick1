@@ -7,6 +7,12 @@ import type { HistoryMessage } from "./history";
 
 const execFileAsync = promisify(execFile);
 
+type ExecFileError = NodeJS.ErrnoException & {
+  stderr?: string;
+  stdout?: string;
+  path?: string;
+};
+
 function formatHistory(history: HistoryMessage[]): string {
   return history.map((message, index) => {
     const role = message.role === "assistant" ? "assistant" : "user";
@@ -32,9 +38,39 @@ function buildCodexPrompt(history: HistoryMessage[], systemPrompt: string): stri
   ].join("\n");
 }
 
-function extractCodexErrorMessage(error: unknown): string {
-  const err = error as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-  if (err.code === "ENOENT") {
+function extractCodexReplyFromTranscript(stdout: string): string {
+  const text = stdout.trim();
+  if (!text) return "";
+
+  const lines = text.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index].trim() !== "codex") continue;
+
+    const collected: string[] = [];
+    for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+      const line = lines[cursor];
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (collected.length > 0) break;
+        continue;
+      }
+      if (/^(tokens used|warning:|user|approval:|sandbox:|session id:|model:|provider:|workdir:|-{2,})/i.test(trimmed)) {
+        if (collected.length > 0) break;
+        continue;
+      }
+      collected.push(line);
+    }
+
+    const reply = collected.join("\n").trim();
+    if (reply) return reply;
+  }
+
+  return "";
+}
+
+function extractCodexErrorMessage(error: unknown, codexBin: string): string {
+  const err = error as ExecFileError;
+  if (err.code === "ENOENT" && (err.path === codexBin || err.message.includes(codexBin))) {
     return "Codex CLI를 찾을 수 없습니다. `codex`를 설치하거나 `CODEX_BIN` 경로를 설정하세요.";
   }
 
@@ -45,6 +81,11 @@ function extractCodexErrorMessage(error: unknown): string {
 
   return stderr || err.message || "Codex 실행에 실패했습니다.";
 }
+
+export const __test = {
+  extractCodexReplyFromTranscript,
+  extractCodexErrorMessage,
+};
 
 export async function getCodexReply(history: HistoryMessage[], systemPrompt: string, model: string): Promise<string> {
   const codexBin = process.env.CODEX_BIN || "codex";
@@ -65,20 +106,29 @@ export async function getCodexReply(history: HistoryMessage[], systemPrompt: str
   ];
 
   try {
-    await execFileAsync(codexBin, args, {
+    const { stdout } = await execFileAsync(codexBin, args, {
       cwd: process.cwd(),
       maxBuffer: 1024 * 1024 * 4,
       timeout: 120_000,
       env: process.env,
     });
 
-    const reply = (await readFile(outputFile, "utf-8")).trim();
+    let reply = "";
+    try {
+      reply = (await readFile(outputFile, "utf-8")).trim();
+    } catch (error) {
+      const err = error as ExecFileError;
+      if (err.code !== "ENOENT") throw error;
+    }
+    if (!reply) {
+      reply = extractCodexReplyFromTranscript(stdout);
+    }
     if (!reply) {
       throw new Error("Codex 응답이 비어 있습니다.");
     }
     return reply;
   } catch (error) {
-    throw new Error(extractCodexErrorMessage(error));
+    throw new Error(extractCodexErrorMessage(error, codexBin));
   } finally {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
