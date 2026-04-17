@@ -5,3 +5,4 @@ data/vectors
 dist
 frontend/dist
 .codex
+.claude/
