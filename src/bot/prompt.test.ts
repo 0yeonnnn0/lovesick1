@@ -29,14 +29,14 @@ describe("prompt presets", () => {
     process.env.OWNER_ID = "test-owner-123";
     const prompt = buildPromptWithCustom("test-owner-123");
     expect(prompt).toContain("shared-memory 봇");
-    expect(prompt).toContain("위대하신 주인쟝");
+    expect(prompt).toContain("1인칭은 '와타시쟝'");
     process.env.OWNER_ID = originalOwner;
   });
 
   it("should build prompt for regular user", () => {
     const prompt = buildPromptWithCustom("some-random-user");
     expect(prompt).toContain("shared-memory 봇");
-    expect(prompt).toContain("일반 유저 모드");
+    expect(prompt).toContain("이모지 금지냥");
   });
 
   it("should switch active preset", () => {
