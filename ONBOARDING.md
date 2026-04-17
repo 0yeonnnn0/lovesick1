@@ -122,6 +122,16 @@ npm run dev
 
 이 이미지에는 `@openai/codex` CLI가 같이 설치된다.
 
+소스 없이 운영하려면 GitHub Container Registry 이미지를 바로 받을 수도 있다.
+
+이미지:
+
+```bash
+ghcr.io/0yeonnnn0/lovesick1:latest
+```
+
+`main` 브랜치 푸시 시 GitHub Actions가 이 이미지를 갱신하도록 설정돼 있다.
+
 실행:
 
 ```bash
