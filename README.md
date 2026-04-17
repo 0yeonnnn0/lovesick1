@@ -66,11 +66,15 @@ cp .env.example .env
 - `OWNER_ID`
 - `DASHBOARD_SECRET`
 - `AI_PROVIDER`
-- 해당 provider의 API 키
+- 선택한 provider에 맞는 설정
+  - `codex`면 `CODEX_BIN`, `CODEX_MODEL`, `CODEX_AUTH_DIR`
+  - `google`면 `GOOGLE_API_KEY`
+  - `openai`면 `OPENAI_API_KEY`
+  - `anthropic`면 `ANTHROPIC_API_KEY`
 
 중요:
 
-- 현재 서버 런타임은 `Codex 구독만으로 직접 동작하지 않는다`
-- 운영에는 `google`, `openai`, `anthropic` 중 하나의 API 키가 필요하다
+- `codex`는 API 직접 호출이 아니라 로컬 Codex CLI 런타임을 사용한다
+- Docker/NAS에서 Codex를 쓸 때는 `CODEX_AUTH_DIR/auth.json` 마운트가 필요하다
 
 자세한 배포/온보딩은 [ONBOARDING.md](/Users/dusehd1/Projects/lovesick1/ONBOARDING.md)를 본다.

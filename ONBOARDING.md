@@ -40,7 +40,7 @@ Discord Developer Portal에서 새 앱을 만든다.
 - `Bot` 생성
 - Bot Token 발급
 - `MESSAGE CONTENT INTENT` 켜기
-- `SERVER MEMBERS INTENT` 켜기
+- `GUILD MEMBERS INTENT` 켜기
 
 초대 링크 생성 시 권장 권한:
 
