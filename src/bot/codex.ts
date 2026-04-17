@@ -1,7 +1,4 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { promisify } from "node:util";
 import type { HistoryMessage } from "./history";
 
@@ -90,8 +87,6 @@ export const __test = {
 export async function getCodexReply(history: HistoryMessage[], systemPrompt: string, model: string): Promise<string> {
   const codexBin = process.env.CODEX_BIN || "codex";
   const prompt = buildCodexPrompt(history, systemPrompt);
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), "lovesick1-codex-"));
-  const outputFile = path.join(tempDir, "last-message.txt");
   const args = [
     "exec",
     "--skip-git-repo-check",
@@ -100,36 +95,23 @@ export async function getCodexReply(history: HistoryMessage[], systemPrompt: str
     "--model",
     model || "gpt-5.4",
     "--ephemeral",
-    "--output-last-message",
-    outputFile,
     prompt,
   ];
 
   try {
-    const { stdout } = await execFileAsync(codexBin, args, {
+    const { stdout, stderr } = await execFileAsync(codexBin, args, {
       cwd: process.cwd(),
       maxBuffer: 1024 * 1024 * 4,
       timeout: 120_000,
       env: process.env,
     });
 
-    let reply = "";
-    try {
-      reply = (await readFile(outputFile, "utf-8")).trim();
-    } catch (error) {
-      const err = error as ExecFileError;
-      if (err.code !== "ENOENT") throw error;
-    }
-    if (!reply) {
-      reply = extractCodexReplyFromTranscript(stdout);
-    }
+    const reply = extractCodexReplyFromTranscript(`${stdout}\n${stderr}`);
     if (!reply) {
       throw new Error("Codex 응답이 비어 있습니다.");
     }
     return reply;
   } catch (error) {
     throw new Error(extractCodexErrorMessage(error, codexBin));
-  } finally {
-    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
 }
