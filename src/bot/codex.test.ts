@@ -2,6 +2,17 @@ import { describe, expect, it } from "vitest";
 import { __test } from "./codex";
 
 describe("codex transcript parsing", () => {
+  it("extracts the final reply from codex jsonl output", () => {
+    const output = [
+      '{"type":"thread.started","thread_id":"abc"}',
+      '{"type":"turn.started"}',
+      '{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"첫 답변"}}',
+      '{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"하이"}}',
+    ].join("\n");
+
+    expect(__test.extractCodexReplyFromJsonLines(output)).toBe("하이");
+  });
+
   it("extracts the final reply from codex exec stdout", () => {
     const stdout = [
       "OpenAI Codex v0.121.0 (research preview)",

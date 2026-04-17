@@ -65,6 +65,30 @@ function extractCodexReplyFromTranscript(stdout: string): string {
   return "";
 }
 
+function extractCodexReplyFromJsonLines(output: string): string {
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    try {
+      const event = JSON.parse(lines[index]) as {
+        type?: string;
+        item?: { type?: string; text?: string };
+      };
+      if (event.type !== "item.completed") continue;
+      if (event.item?.type !== "agent_message") continue;
+      const text = event.item.text?.trim();
+      if (text) return text;
+    } catch {
+      continue;
+    }
+  }
+
+  return "";
+}
+
 function extractCodexErrorMessage(error: unknown, codexBin: string): string {
   const err = error as ExecFileError;
   if (err.code === "ENOENT" && (err.path === codexBin || err.message.includes(codexBin))) {
@@ -80,6 +104,7 @@ function extractCodexErrorMessage(error: unknown, codexBin: string): string {
 }
 
 export const __test = {
+  extractCodexReplyFromJsonLines,
   extractCodexReplyFromTranscript,
   extractCodexErrorMessage,
 };
@@ -92,6 +117,7 @@ export async function getCodexReply(history: HistoryMessage[], systemPrompt: str
     "--skip-git-repo-check",
     "--sandbox",
     "read-only",
+    "--json",
     "--model",
     model || "gpt-5.4",
     "--ephemeral",
@@ -106,7 +132,8 @@ export async function getCodexReply(history: HistoryMessage[], systemPrompt: str
       env: process.env,
     });
 
-    const reply = extractCodexReplyFromTranscript(`${stdout}\n${stderr}`);
+    const combined = `${stdout}\n${stderr}`;
+    const reply = extractCodexReplyFromJsonLines(combined) || extractCodexReplyFromTranscript(combined);
     if (!reply) {
       throw new Error("Codex 응답이 비어 있습니다.");
     }
