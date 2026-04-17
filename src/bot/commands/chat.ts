@@ -3,6 +3,7 @@ import { answerMemoryQuery, getReply } from "../ai";
 import { buildRoomMemoryContext, looksLikeMemoryQuery } from "../../core/query";
 import * as historyStore from "../history";
 import * as rag from "../rag";
+import { addError } from "../../shared/state";
 
 // ── /ask ──
 export async function handleQuestion(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -23,6 +24,9 @@ export async function handleQuestion(interaction: ChatInputCommandInteraction): 
     await interaction.editReply(reply);
   } catch (err) {
     const isRateLimit = (err as Error).message?.includes("429") || (err as Error).message?.includes("quota");
+    const messageText = (err as Error).message || "unknown error";
+    console.error(`[ASK:CATCH] user=${interaction.user.displayName} channel=${interaction.channelId} error="${messageText}"`);
+    addError("ask_command", messageText, `channel: ${interaction.channelId}, user: ${interaction.user.id}`);
     await interaction.editReply(
       isRateLimit
         ? "오늘은 너무 많이 떠들었다냥... 내일 다시 돌아온다냥! >w<"
@@ -78,6 +82,9 @@ ${chatLog}`;
 
     await interaction.editReply({ embeds: [embed] });
   } catch (err) {
-    await interaction.editReply("요약하다가 고장났다냥... @д@ " + (err as Error).message);
+    const messageText = (err as Error).message || "unknown error";
+    console.error(`[SUMMARY:CATCH] user=${interaction.user.displayName} channel=${interaction.channelId} error="${messageText}"`);
+    addError("summary_command", messageText, `channel: ${interaction.channelId}, user: ${interaction.user.id}`);
+    await interaction.editReply("요약하다가 고장났다냥... @д@ " + messageText);
   }
 }
