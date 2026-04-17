@@ -1,0 +1,38 @@
+{
+  "name": "discord-bot",
+  "version": "2.0.0",
+  "description": "디스코드 대화 참여형 AI 봇",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@discordjs/voice": "^0.19.2",
+    "@google/genai": "^1.46.0",
+    "@google/generative-ai": "^0.24.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.1.1",
+    "openai": "^6.32.0",
+    "opusscript": "^0.0.8",
+    "sodium-native": "^5.1.0",
+    "vectra": "^0.12.3",
+    "wav": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.5.0",
+    "@types/wav": "^1.0.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
